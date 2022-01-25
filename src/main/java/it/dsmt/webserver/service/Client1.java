@@ -13,7 +13,7 @@ import java.util.concurrent.ExecutorService;
 @Component
 public class Client1 {
 
-    private String nodeId = "springclient";
+    private String nodeId = "eirik-springclient";
     private String cookie = "abcde";
     private String mBox = "mBox";
     private String room;
@@ -90,6 +90,7 @@ public class Client1 {
                 new OtpErlangAtom("$gen_call"), from, outMsg});
         this.otpMbox.send("chat_server", this.servername , msg_gen );
         OtpErlangTuple reply = (OtpErlangTuple) this.otpMbox.receive();
+        System.out.println("Dette er i getRooms: " + reply );
         OtpErlangTuple roomTuple = (OtpErlangTuple) reply.elementAt(1);
         OtpErlangList chatRooms = (OtpErlangList) roomTuple.elementAt(1);
         List<String> rooms = new ArrayList<>();
@@ -98,29 +99,12 @@ public class Client1 {
             System.out.println("No available rooms");
         }
         else {
-            chatRooms.forEach(System.out::println);
+            //chatRooms.forEach(System.out::println);
             chatRooms.forEach(x -> rooms.add(String.valueOf(x).substring(1, String.valueOf(x).length() -1)));
         }
         return rooms;
     }
 
-    public boolean addRoom(String room) throws OtpErlangDecodeException, OtpErlangExit {
-        OtpErlangAtom msgType = new OtpErlangAtom("newroom");
-        OtpErlangString otpRoom = new OtpErlangString(room);
-        OtpErlangTuple outMsg = new OtpErlangTuple(new OtpErlangObject[]{msgType, otpRoom});
-        OtpErlangTuple from = new OtpErlangTuple(new OtpErlangObject[] {
-                this.otpMbox.self(), this.otpNode.createRef()
-        });
-        OtpErlangObject msg_gen = new OtpErlangTuple(new OtpErlangObject[] {
-                new OtpErlangAtom("$gen_call"), from, outMsg});
-        this.otpMbox.send("chat_server", this.servername , msg_gen );
-        OtpErlangObject reply = this.otpMbox.receive();
-        if (reply == null) {
-            System.out.println("Failed to make room");
-            return false;
-        }
-        return true;
-    }
 
     public List<String> joinRoom(String room) throws OtpErlangDecodeException, OtpErlangExit {
         OtpErlangAtom msgType = new OtpErlangAtom("connect");
@@ -137,10 +121,10 @@ public class Client1 {
         OtpErlangTuple userTuple = (OtpErlangTuple) reply.elementAt(1);
         OtpErlangList usernames = (OtpErlangList) userTuple.elementAt(1);
         List<String> users = new ArrayList<>();
-
+        System.out.println("Dette er i join room: " + reply);
         if (!(usernames.elementAt(0) == null)) {
             System.out.println("Users already in room: ");
-            usernames.forEach(System.out::println);
+            //usernames.forEach(System.out::println);
             usernames.forEach(x -> users.add(String.valueOf(x).substring(1, String.valueOf(x).length() -1)));
             return users;
         }
@@ -167,16 +151,24 @@ public class Client1 {
 
     public void receive() throws OtpErlangDecodeException, OtpErlangExit {
         OtpErlangTuple reply = (OtpErlangTuple) this.otpMbox.receive();
-        try {
+        /*try {
             OtpErlangTuple replyMsg = (OtpErlangTuple) reply.elementAt(1);
             OtpErlangAtom ok = new OtpErlangAtom("ok");
+            System.out.println("This is the reply: "  + reply);
             if (!replyMsg.elementAt(0).equals(ok)) {
                 System.out.println("Something went wrong");
             }
 
-        } catch (Exception e) {
-            this.getMessages().add(reply.elementAt(0).toString());
+        } catch (Exception e) {*/
+        OtpErlangAtom msg = new OtpErlangAtom("msg");
+        System.out.println("Dette er receive " + reply);
+        if (reply.elementAt(0).equals(msg)) {
+
+            OtpErlangTuple msgFromUser = (OtpErlangTuple) reply.elementAt(1);
+            System.out.println("Sender melding " + msgFromUser.elementAt(0));
+            this.getMessages().add(msgFromUser.elementAt(0).toString());
         }
+
     }
 
     public void exit() throws OtpErlangDecodeException, OtpErlangExit {
@@ -189,7 +181,9 @@ public class Client1 {
         OtpErlangObject msg_gen = new OtpErlangTuple(new OtpErlangObject[] {
                 new OtpErlangAtom("$gen_call"), from, outMsg});
         this.otpMbox.send("chat_server", this.servername , msg_gen);
-        this.otpMbox.receive();
+        setMessages(new ArrayList<>());
+        //this.otpMbox.receive();
+        System.out.println("Getter messages: " + getMessages());
     }
 
 

@@ -99,7 +99,6 @@ public class ClientController {
     @GetMapping("/getmessages")
     public ResponseEntity<List<String>> getMessages() {
         try {
-            System.out.println();
             return new ResponseEntity<>(client1.getMessages(), HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -110,8 +109,7 @@ public class ClientController {
     public ResponseEntity<String> exitRoom() {
         try {
             client1.exit();
-            client1.setMessages(new ArrayList<>());
-            client1.executorService.shutdown();
+            client1.getExecutorService().shutdown();
             return new ResponseEntity<>("Exited room", HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
