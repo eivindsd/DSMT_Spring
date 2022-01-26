@@ -1,6 +1,7 @@
 package it.dsmt.webserver.service;
 
 import com.ericsson.otp.erlang.*;
+import it.dsmt.webserver.model.Message;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -13,9 +14,8 @@ import java.util.concurrent.ExecutorService;
 @Component
 public class Client1 {
 
-    private String nodeId = "springclient";
+    private String nodeId = "eirik-springclient";
     private String cookie = "abcde";
-    private String mBox = "mBox";
     private String room;
     private OtpNode otpNode;
     private String username;
@@ -24,22 +24,22 @@ public class Client1 {
     private OtpMbox otpMbox;
     public ExecutorService executorService;
     public CountDownLatch latch = new CountDownLatch(1);
-    public List<String> messages = new ArrayList<>();
+    public List<Message> messages = new ArrayList<>();
 
-    public List<String> getMessages() {
+    public List<Message> getMessages() {
         return messages;
     }
 
-    public void setMessages(List<String> messages) {
+    public String getUsername() {
+        return username;
+    }
+
+    public void setMessages(List<Message> messages) {
         this.messages = messages;
     }
 
     public CountDownLatch getLatch() {
         return latch;
-    }
-
-    public void setLatch(CountDownLatch latch) {
-        this.latch = latch;
     }
 
     public ExecutorService getExecutorService() {
@@ -56,10 +56,6 @@ public class Client1 {
 
     public void setRoom(String room) {
         this.room = room;
-    }
-
-    public String getUsername() {
-        return username;
     }
 
     public void setUsername(String username) {
@@ -94,33 +90,12 @@ public class Client1 {
         OtpErlangList chatRooms = (OtpErlangList) roomTuple.elementAt(1);
         List<String> rooms = new ArrayList<>();
 
-        if (chatRooms.elementAt(0) == null) {
-            System.out.println("No available rooms");
-        }
-        else {
-            chatRooms.forEach(System.out::println);
-            chatRooms.forEach(x -> rooms.add(String.valueOf(x).substring(1, String.valueOf(x).length() -1)));
+        if (chatRooms.elementAt(0) != null) {
+            chatRooms.forEach(x -> rooms.add(String.valueOf(x).substring(1, String.valueOf(x).length() - 1)));
         }
         return rooms;
     }
 
-    public boolean addRoom(String room) throws OtpErlangDecodeException, OtpErlangExit {
-        OtpErlangAtom msgType = new OtpErlangAtom("newroom");
-        OtpErlangString otpRoom = new OtpErlangString(room);
-        OtpErlangTuple outMsg = new OtpErlangTuple(new OtpErlangObject[]{msgType, otpRoom});
-        OtpErlangTuple from = new OtpErlangTuple(new OtpErlangObject[] {
-                this.otpMbox.self(), this.otpNode.createRef()
-        });
-        OtpErlangObject msg_gen = new OtpErlangTuple(new OtpErlangObject[] {
-                new OtpErlangAtom("$gen_call"), from, outMsg});
-        this.otpMbox.send("chat_server", this.servername , msg_gen );
-        OtpErlangObject reply = this.otpMbox.receive();
-        if (reply == null) {
-            System.out.println("Failed to make room");
-            return false;
-        }
-        return true;
-    }
 
     public List<String> joinRoom(String room) throws OtpErlangDecodeException, OtpErlangExit {
         OtpErlangAtom msgType = new OtpErlangAtom("connect");
@@ -137,18 +112,8 @@ public class Client1 {
         OtpErlangTuple userTuple = (OtpErlangTuple) reply.elementAt(1);
         OtpErlangList usernames = (OtpErlangList) userTuple.elementAt(1);
         List<String> users = new ArrayList<>();
-
-        if (!(usernames.elementAt(0) == null)) {
-            System.out.println("Users already in room: ");
-            usernames.forEach(System.out::println);
-            usernames.forEach(x -> users.add(String.valueOf(x).substring(1, String.valueOf(x).length() -1)));
-            return users;
-        }
-        else {
-            System.out.println("You are the first person in the room");
-            usernames.forEach(x -> users.add(String.valueOf(x).substring(1, String.valueOf(x).length() -1)));
-            return users;
-        }
+        usernames.forEach(x -> users.add(String.valueOf(x).substring(1, String.valueOf(x).length() -1)));
+        return users;
     }
 
     public void sendMessage(String room, String msg) throws OtpErlangDecodeException, OtpErlangExit {
@@ -165,18 +130,19 @@ public class Client1 {
         this.otpMbox.send("chat_server", this.servername , msg_gen );
     }
 
-    public void receive() throws OtpErlangDecodeException, OtpErlangExit {
+    public OtpErlangTuple receive() throws OtpErlangDecodeException, OtpErlangExit {
         OtpErlangTuple reply = (OtpErlangTuple) this.otpMbox.receive();
-        try {
-            OtpErlangTuple replyMsg = (OtpErlangTuple) reply.elementAt(1);
-            OtpErlangAtom ok = new OtpErlangAtom("ok");
-            if (!replyMsg.elementAt(0).equals(ok)) {
-                System.out.println("Something went wrong");
-            }
-
-        } catch (Exception e) {
-            this.getMessages().add(reply.elementAt(0).toString());
+        OtpErlangAtom msg = new OtpErlangAtom("msg");
+        OtpErlangTuple type = (OtpErlangTuple) reply.elementAt(1);
+        if (reply.elementAt(0).equals(msg)) {
+            OtpErlangTuple msgFromUser = (OtpErlangTuple) reply.elementAt(1);
+            Message replyMsg = new Message();
+            replyMsg.setMessage(msgFromUser.elementAt(0).toString());
+            replyMsg.setName(msgFromUser.elementAt(1).toString());
+            this.getMessages().add(replyMsg);
         }
+        return type;
+
     }
 
     public void exit() throws OtpErlangDecodeException, OtpErlangExit {
@@ -189,7 +155,12 @@ public class Client1 {
         OtpErlangObject msg_gen = new OtpErlangTuple(new OtpErlangObject[] {
                 new OtpErlangAtom("$gen_call"), from, outMsg});
         this.otpMbox.send("chat_server", this.servername , msg_gen);
-        this.otpMbox.receive();
+        setMessages(new ArrayList<>());
+        getExecutorService().shutdownNow();
+        if (!getExecutorService().isShutdown()) {
+            getExecutorService().shutdown();
+        }
+        this.sendMessage(getRoom(), getUsername() + " left the room");
     }
 
 
