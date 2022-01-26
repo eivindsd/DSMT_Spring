@@ -1,6 +1,7 @@
 package it.dsmt.webserver.service;
 
 import com.ericsson.otp.erlang.*;
+import it.dsmt.webserver.model.Message;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -23,13 +24,17 @@ public class Client1 {
     private OtpMbox otpMbox;
     public ExecutorService executorService;
     public CountDownLatch latch = new CountDownLatch(1);
-    public List<String> messages = new ArrayList<>();
+    public List<Message> messages = new ArrayList<>();
 
-    public List<String> getMessages() {
+    public List<Message> getMessages() {
         return messages;
     }
 
-    public void setMessages(List<String> messages) {
+    public String getUsername() {
+        return username;
+    }
+
+    public void setMessages(List<Message> messages) {
         this.messages = messages;
     }
 
@@ -85,11 +90,8 @@ public class Client1 {
         OtpErlangList chatRooms = (OtpErlangList) roomTuple.elementAt(1);
         List<String> rooms = new ArrayList<>();
 
-        if (chatRooms.elementAt(0) == null) {
-            System.out.println("No available rooms");
-        }
-        else {
-            chatRooms.forEach(x -> rooms.add(String.valueOf(x).substring(1, String.valueOf(x).length() -1)));
+        if (chatRooms.elementAt(0) != null) {
+            chatRooms.forEach(x -> rooms.add(String.valueOf(x).substring(1, String.valueOf(x).length() - 1)));
         }
         return rooms;
     }
@@ -110,15 +112,8 @@ public class Client1 {
         OtpErlangTuple userTuple = (OtpErlangTuple) reply.elementAt(1);
         OtpErlangList usernames = (OtpErlangList) userTuple.elementAt(1);
         List<String> users = new ArrayList<>();
-        if (!(usernames.elementAt(0) == null)) {
-            //usernames.forEach(System.out::println);
-            usernames.forEach(x -> users.add(String.valueOf(x).substring(1, String.valueOf(x).length() -1)));
-            return users;
-        }
-        else {
-            usernames.forEach(x -> users.add(String.valueOf(x).substring(1, String.valueOf(x).length() -1)));
-            return users;
-        }
+        usernames.forEach(x -> users.add(String.valueOf(x).substring(1, String.valueOf(x).length() -1)));
+        return users;
     }
 
     public void sendMessage(String room, String msg) throws OtpErlangDecodeException, OtpErlangExit {
@@ -141,14 +136,16 @@ public class Client1 {
         OtpErlangTuple type = (OtpErlangTuple) reply.elementAt(1);
         if (reply.elementAt(0).equals(msg)) {
             OtpErlangTuple msgFromUser = (OtpErlangTuple) reply.elementAt(1);
-            System.out.println("Sender melding " + msgFromUser.elementAt(0));
-            this.getMessages().add(msgFromUser.elementAt(0).toString());
+            Message replyMsg = new Message();
+            replyMsg.setMessage(msgFromUser.elementAt(0).toString());
+            replyMsg.setName(msgFromUser.elementAt(1).toString());
+            this.getMessages().add(replyMsg);
         }
         return type;
 
     }
 
-    public void exit(){
+    public void exit() throws OtpErlangDecodeException, OtpErlangExit {
         OtpErlangAtom msgType = new OtpErlangAtom("exit");
         OtpErlangString otpUsername = new OtpErlangString(this.username);
         OtpErlangTuple outMsg = new OtpErlangTuple(new OtpErlangObject[]{msgType, otpUsername});
@@ -157,13 +154,13 @@ public class Client1 {
         });
         OtpErlangObject msg_gen = new OtpErlangTuple(new OtpErlangObject[] {
                 new OtpErlangAtom("$gen_call"), from, outMsg});
-
         this.otpMbox.send("chat_server", this.servername , msg_gen);
         setMessages(new ArrayList<>());
         getExecutorService().shutdownNow();
         if (!getExecutorService().isShutdown()) {
             getExecutorService().shutdown();
         }
+        this.sendMessage(getRoom(), getUsername() + " left the room");
     }
 
 

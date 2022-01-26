@@ -97,7 +97,7 @@ public class ClientController {
     }
 
     @GetMapping("/getmessages")
-    public ResponseEntity<List<String>> getMessages() {
+    public ResponseEntity<List<Message>> getMessages() {
         try {
             return new ResponseEntity<>(client1.getMessages(), HttpStatus.OK);
         } catch (Exception e) {
