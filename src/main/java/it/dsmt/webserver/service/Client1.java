@@ -3,10 +3,8 @@ package it.dsmt.webserver.service;
 import com.ericsson.otp.erlang.*;
 import it.dsmt.webserver.model.Message;
 import org.springframework.stereotype.Component;
-
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -14,7 +12,7 @@ import java.util.concurrent.ExecutorService;
 @Component
 public class Client1 {
 
-    private String nodeId = "eirik-springclient";
+    private String nodeId = "eivind-springclient";
     private String cookie = "abcde";
     private String room;
     private OtpNode otpNode;
@@ -96,7 +94,6 @@ public class Client1 {
         return rooms;
     }
 
-
     public List<String> joinRoom(String room) throws OtpErlangDecodeException, OtpErlangExit {
         OtpErlangAtom msgType = new OtpErlangAtom("connect");
         OtpErlangString otpRoom = new OtpErlangString(room);
@@ -162,6 +159,4 @@ public class Client1 {
         }
         this.sendMessage(getRoom(), getUsername() + " left the room");
     }
-
-
 }

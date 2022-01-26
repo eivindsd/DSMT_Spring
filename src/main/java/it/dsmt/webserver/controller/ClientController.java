@@ -1,24 +1,16 @@
 package it.dsmt.webserver.controller;
-
-import com.ericsson.otp.erlang.OtpErlangDecodeException;
-import com.ericsson.otp.erlang.OtpErlangExit;
-import com.ericsson.otp.erlang.OtpErlangList;
 import it.dsmt.webserver.model.Message;
 import it.dsmt.webserver.model.Room;
 import it.dsmt.webserver.model.User;
 import it.dsmt.webserver.service.Client1;
 import it.dsmt.webserver.service.Receiver;
 import it.dsmt.webserver.service.Sender;
-import org.apache.coyote.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Executors;
 
@@ -43,7 +35,6 @@ public class ClientController {
             }
             return new ResponseEntity<>(rooms, HttpStatus.OK);
         } catch (Exception e) {
-            System.out.print(e.getMessage());
             return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -78,20 +69,18 @@ public class ClientController {
             client1.setRoom(room);
             Receiver receiver = new Receiver(client1);
             client1.getExecutorService().execute(receiver);
-            System.out.println(users);
             if (users.size() == 0) {
                 return new ResponseEntity<>(HttpStatus.NO_CONTENT);
             }
             return new ResponseEntity<>(users, HttpStatus.OK);
         } catch (Exception e) {
-            System.out.println(e.getMessage());
             return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
     @PostMapping("/sendmessage")
     public ResponseEntity<Message> sendMessage(@RequestBody Message message) {
-        Sender sender = new Sender(client1,null, client1.getLatch(), message.getMessage());
+        Sender sender = new Sender(client1, client1.getLatch(), message.getMessage());
         client1.getExecutorService().execute(sender);
         return new ResponseEntity<>(HttpStatus.OK);
     }
