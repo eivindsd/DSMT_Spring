@@ -76,7 +76,7 @@ public class ClientController {
         try {
             List<String> users = client1.joinRoom(room);
             client1.setRoom(room);
-            Receiver receiver = new Receiver(client1, null);
+            Receiver receiver = new Receiver(client1);
             client1.getExecutorService().execute(receiver);
             System.out.println(users);
             if (users.size() == 0) {
@@ -109,7 +109,6 @@ public class ClientController {
     public ResponseEntity<String> exitRoom() {
         try {
             client1.exit();
-            client1.getExecutorService().shutdown();
             return new ResponseEntity<>("Exited room", HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
