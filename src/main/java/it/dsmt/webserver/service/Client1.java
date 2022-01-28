@@ -12,7 +12,7 @@ import java.util.concurrent.ExecutorService;
 @Component
 public class Client1 {
 
-    private String nodeId = "eivind-springclient";
+    private String nodeId = "eirik-springclient";
     private String cookie = "abcde";
     private String room;
     private OtpNode otpNode;
